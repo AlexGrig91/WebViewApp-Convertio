@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
                     openSideUrl(url);
                 }
                 return true;
+
             }
 
         });
