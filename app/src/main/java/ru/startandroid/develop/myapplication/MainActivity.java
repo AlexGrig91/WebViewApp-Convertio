@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
@@ -19,6 +20,7 @@ import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,14 +32,24 @@ public class MainActivity extends AppCompatActivity {
     private final static int FILECHOOSER_RESULT_CODE = 1;
     public ValueCallback<Uri[]> uploadMessage;
     private WebView webView;
+    private Button homeButton;
     private ValueCallback<Uri> mUploadMessage;
+
+    private boolean allowSideUrl = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        homeButton = findViewById(R.id.homeButton);
         webView = findViewById(R.id.webView);
+
+
+        homeButton.setOnClickListener((view) -> {
+            goHome();
+        });
+
         webView.setWebViewClient(new WebViewClient() {
 
             //позволяем приложению обрабатывать ссылки
@@ -47,7 +59,9 @@ public class MainActivity extends AppCompatActivity {
                 //https://convertio.co/ru/download/d3e3160ed87ea17f900e1167324e2d6c7802cb/
                 //https://convertio.co/ru/download/d3e3160ed87ea17f900e1167324e2d6c7802cb/
                 //https://convertio.co/ru/download/d3e3160ed87ea17f900e1167324e2d6c706807/
-                if (Uri.parse(url).getHost().startsWith("convertio.co")) {
+                if (allowSideUrl) {
+                    view.loadUrl(url);
+                } else if (Uri.parse(url).getHost().startsWith("convertio.co")) {
                     view.loadUrl(url);
                 } else {
                     openSideUrl(url);
@@ -119,16 +133,18 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
+
     private void openSideUrl(String url) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
         builder.setTitle("Вы переходите по сторонней ссылке")
                 .setMessage("Желаете открыть в стороннем браузере")
                 .setPositiveButton(R.string.in_browser, (dialog, which) -> {
-                    openLinkBrowser(url);
+                    openLinkInBrowser(url);
                 })
                 .setNegativeButton(R.string.in_app, (dialog, which) -> {
-                    openLinkApp(url);
+                    openLinkInApp(url);
                 });
 
         AlertDialog dialog = builder.create();
@@ -138,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void openLinkBrowser(String url) {
+    private void openLinkInBrowser(String url) {
         //startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(Uri.parse(url), "text/html");
@@ -149,10 +165,34 @@ public class MainActivity extends AppCompatActivity {
 //                                Intent.CATEGORY_APP_BROWSER));
     }
 
-    private void openLinkApp(String url) {
-        Intent intent = new Intent(this, ActivityButtonHome.class);
-        intent.putExtra(Constants.URL_EXTRA, url);
-        startActivity(intent);
+    private void openLinkInApp(String url) {
+        allowSideUrl = true;
+        webView.loadUrl(url);
+        updateUi(allowSideUrl);
+
+//        Intent intent = new Intent(this, ActivityButtonHome.class);
+//        intent.putExtra(Constants.URL_EXTRA, url);
+//        startActivity(intent);
+    }
+
+    private void goHome() {
+        allowSideUrl = false;
+        webView.clearHistory();
+        webView.loadUrl("https://convertio.co/ru/jpg-png/");
+        updateUi(allowSideUrl);
+    }
+
+    private void updateUi(boolean showHomeButton) {
+        int visibility = showHomeButton ? View.VISIBLE : View.GONE;
+        homeButton.setVisibility(visibility);
+    }
+
+    private int getVisibility(boolean showHomeButton){
+        if (showHomeButton){
+            return View.VISIBLE;
+        } else {
+            return View.GONE;
+        }
     }
 
     @SuppressLint("MissingSuperCall")
